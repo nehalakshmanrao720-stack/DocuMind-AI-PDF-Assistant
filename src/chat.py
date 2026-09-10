@@ -36,7 +36,7 @@ class ChatManager:
             print(f"Error initializing LLM, retrying: {str(e)}")
             time.sleep(1)
             self.llm = ChatGoogleGenerativeAI(
-                model="gemma-3-27b-it", 
+                model="gemini-3.6-flash", 
                 google_api_key=self.api_key
             )
     
@@ -118,7 +118,36 @@ class ChatManager:
         if self.memory:
             self.memory.clear()
             
-    def get_conversation_history(self):
-        if self.memory:
-            return self.memory.chat_memory.messages
-        return []
+    def generate_summary(self, documents: List[Document]):
+        """Generate a concise summary of the uploaded PDF."""
+        try:
+            document_text = "\n\n".join(
+                doc.page_content for doc in documents
+            )
+            document_text = document_text[:30000]
+
+            prompt = f"""
+You are an AI document assistant.
+
+Summarize the following PDF document in a clear and useful way.
+
+Provide:
+1. A short overview
+2. Main topics discussed
+3. Important points
+4. Key conclusions
+
+Keep the summary easy to understand and well structured.
+
+Document:
+{document_text}
+"""
+
+            response = self.llm.invoke([
+                HumanMessage(content=prompt)
+            ])
+
+            return response.content
+
+        except Exception as e:
+            return f"Unable to generate summary: {str(e)}"
